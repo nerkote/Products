@@ -13,7 +13,7 @@ public class InsertData {
             Class.forName("org.postgresql.Driver");
             c = DriverManager
                     .getConnection("jdbc:postgresql://localhost:5432/products",
-                            "postgres", "motorola96");
+                            "postgres", "password");
             c.setAutoCommit(false);
 
             stmt = c.createStatement();
