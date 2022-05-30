@@ -4,6 +4,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -12,10 +13,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class GetingData extends Thread {
     private Map<String, ArrayList<String>> multiValueMap = new TreeMap<String, ArrayList<String>>();
@@ -34,21 +32,24 @@ public class GetingData extends Thread {
 
     @Override
     public void run() {
+        InsertData insertData = new InsertData();
         URL url = null;
         try {
             url = new URL(name);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            conn.connect();
             String timeStamp = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(Calendar.getInstance().getTime());
-            System.out.println(timeStamp);
+            long startTimeMS = System.currentTimeMillis();
+            conn.connect();
+
+            /*String timeStamp = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(Calendar.getInstance().getTime());
             String commands = "curl -s -w %{time_total} -o /dev/null " + name;
             Process process = Runtime.getRuntime().exec(commands);
             BufferedReader responseTimeReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String responseTime;
             responseTime = responseTimeReader.readLine();
             System.out.println("URL: " + name + "\nResponse time from server: " + responseTime + " secconds " + "\n_______________________________");
-            process.destroy();
+            process.destroy();*/
             int status = conn.getResponseCode();
             BufferedReader reader;
             String line = new String();
@@ -64,10 +65,16 @@ public class GetingData extends Thread {
                 while ((line = reader.readLine()) != null) {
                     responseContent.append(line);
                 }
+                long finishTimeMS = System.currentTimeMillis();
+                long timeForResponse = finishTimeMS - startTimeMS;
+                System.out.println(timeStamp);
+                System.out.println(timeForResponse);
                 data = responseContent.toString();
 
                 JSONParser parser = new JSONParser();
                 JSONArray jsonArray = (JSONArray) parser.parse(data);
+                insertData.insert(url.toString(), timeStamp, timeForResponse);
+
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JSONObject productsArray = (JSONObject) jsonArray.get(i);
                     long productId = (long) productsArray.get("product_id");
@@ -88,6 +95,10 @@ public class GetingData extends Thread {
 
         } catch (IOException | ParseException ex) {
             ex.printStackTrace();
+        } catch (Exception e){
+            e.printStackTrace();
         }
+
     }
+
 }
